@@ -146,7 +146,7 @@ do
         livemark_url=$(
             ${CMD_SQLITE3} "${db_places_path}" \
                 "SELECT content FROM moz_items_annos
-                    WHERE id=${livemark_places_id} AND anno_attribute_id=10" \
+                    WHERE item_id=${livemark_places_id} AND anno_attribute_id=10" \
                 | ${CMD_TR} -d "\n" \
                 | ${CMD_TR} -d "\r"
         )
@@ -163,7 +163,7 @@ do
         livemark_site_url=$(
             ${CMD_SQLITE3} "${db_places_path}" \
                 "SELECT content FROM moz_items_annos
-                    WHERE id=${livemark_places_id} AND anno_attribute_id=11" \
+                    WHERE item_id=${livemark_places_id} AND anno_attribute_id=11" \
                 | ${CMD_TR} -d "\n" \
                 | ${CMD_TR} -d "\r"
         )

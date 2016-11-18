@@ -151,6 +151,11 @@ do
                 | ${CMD_TR} -d "\r"
         )
 
+        # If there is no URL, this is just a folder, and move on
+        if [ -z "${livemark_url}" ]; then
+            continue
+        fi
+        
         debug "livemark_url ${livemark_url}"
 
         # Retrieve the livemark's site URL:

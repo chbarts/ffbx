@@ -153,6 +153,7 @@ do
 
         # If there is no URL, this is just a folder, and move on
         if [ -z "${livemark_url}" ]; then
+            debug "skipped ${livemark_places_id}"
             continue
         fi
         

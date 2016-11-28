@@ -1,0 +1,96 @@
+#!/bin/bash
+# Copyright 2016, Chris Barts <chbarts@gmail.com>
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Dump all histories from either places.sqlite on command line or, if
+# none mentioned, all Firefox profiles into one TSV dump on stdout.
+
+CMD_SED=${CMD_SED:-$(which sed)}
+CMD_FIND=${CMD_FIND:-$(which find)}
+CMD_SQLITE3=${CMD_SQLITE3:-$(which sqlite3)}
+
+if [ ! -f "${CMD_SED}" ]; then
+    echo "sed not found" >/dev/stderr
+    exit 1
+fi
+
+if [ ! -f "${CMD_FIND}" ]; then
+    echo "find not found" >/dev/stderr
+    exit 1
+fi
+
+if [ ! -f "${CMD_SQLITE3}" ]; then
+    echo "sqlite3 not found" >/dev/stderr
+    exit 1
+fi
+
+function debug() {
+    if [ "${DEBUG}" = "1" ];
+    then
+        local msg="${*}"
+        echo "DEBUG: $msg"
+    fi
+}
+
+if [ -z "${1}" ];
+then
+    #
+    found_db_places_paths=$(
+        #
+        ${CMD_FIND} ~/.mozilla/firefox/ \
+            -type f \
+            -name "places.sqlite" \
+            -mindepth 2 \
+            -maxdepth 2 \
+            2>/dev/null
+    )
+    #
+    if [ -z "${found_db_places_paths}" ];
+    then
+        echo "No places.sqlite path given and none could be found."
+        exit 1
+    else
+        db_places_paths_were_autodiscovered="yes"
+    fi
+else
+    #
+    if [ ! -r "${1}" ];
+    then
+        echo "Profile path is not readable."
+        exit 2
+    else
+        found_db_places_paths="${1}"
+        db_places_paths_were_autodiscovered="no"
+    fi
+fi
+
+debug "found_db_places_paths ${found_db_places_paths}"
+debug "db_places_paths_were_autodiscovered" \
+        "${db_places_paths_were_autodiscovered}"
+for db_places_path in ${found_db_places_paths};
+do
+
+    if [ "${db_places_paths_were_autodiscovered}" = "yes" ];
+    then
+        profile_path=$(dirname "${db_places_path}")
+        profile_name=$(basename "${profile_path}")
+    else
+        profile_name=""
+    fi
+    
+    ${CMD_SQLITE3} "${db_places_path}" \
+                   "SELECT moz_historyvisits.visit_date, moz_places.url, moz_places.title FROM moz_places, moz_historyvisits WHERE moz_places.id = moz_historyvisits.place_id" \
+        | ${CMD_SED} 's/\([0123456789]\+\)|\([^|]\+\)|\(.*\)/\1\t'${profile_name}'\t\2\t\3/g'
+
+done

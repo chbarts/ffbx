@@ -1,0 +1,45 @@
+#!/usr/bin/awk --exec
+# Convert datestamps to a human-readable form in columns specified on the command line
+
+function help(loc)
+{
+    print "usage: humanize-date-columns [columns...] < input.tsv > output.tsv" > loc
+    print "arguments which don't correspond to columns in the input are silently ignored" > loc
+}
+
+function ctime(ts)
+{
+    return strftime("%a %b %e %H:%M:%S %Z %Y", ts);
+}
+
+BEGIN {
+    if (ARGC == 1) {
+        help("/dev/stdout")
+        exit 0
+    }
+
+    for (i = 1; i < ARGC; i++) {
+        if (ARGV[i] ~ /[^[:digit:]]/) {
+            print "error: humanize-date-columns: " ARGV[i] " not a valid column number" > "/dev/stderr"
+            help("/dev/stderr")
+            exit 1
+        }
+
+        cols[i - 1] = ARGV[i]
+    }
+
+    ARGC = 1 # Tell awk to stop processing command line options
+    FS = "\t"
+    OFS = "\t"
+}
+
+{
+    for (c in cols) {
+        if (cols[c] > NF)
+            continue;
+        
+        $cols[c] = ctime(sprintf("%d", $cols[c]/1000000))
+    }
+
+    print $0
+}

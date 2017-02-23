@@ -1,0 +1,56 @@
+#!/bin/bash
+# sort-by-field - Sort a file or standard input of the type created by ffbx.sh by a specified field
+# Copyright (C) 2017 Chris Barts <chbarts@gmail.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+# ------------------------------------------------------------------------------
+
+if [[ $# -eq 0 ]]; then
+    echo "Usage: $0 FIELD [FILE]"
+    echo "Sort standard input or a FILE by FIELD number, counting from 1"
+    exit 0
+fi
+
+CMD_AWK=${CMD_AWK:-$(which awk)}
+CMD_PASTE=${CMD_PASTE:-$(which paste)}
+CMD_SORT=${CMD_SORT:-$(which sort)}
+CMD_TR=${CMD_TR:-$(which tr)}
+
+if [ ! -f "${CMD_AWK}" ]; then
+    echo "awk not found" >/dev/stderr
+    exit 1
+fi
+
+if [ ! -f "${CMD_PASTE}" ]; then
+    echo "paste not found" >/dev/stderr
+    exit 1
+fi
+
+if [ ! -f "${CMD_SORT}" ]; then
+    echo "sort not found" >/dev/stderr
+    exit 1
+fi
+
+if [ ! -f "${CMD_TR}" ]; then
+    echo "tr not found" >/dev/stderr
+    exit 1
+fi
+
+FN=$1
+FILE=${2:-"/dev/stdin"}
+FFBX_FIELD_SEPARATOR=${FFBX_FIELD_SEPARATOR:-"\t"}
+FFBX_ROW_SEPARATOR=${FFBX_ROW_SEPARATOR:-"\n"}
+
+${CMD_PASTE} <(${CMD_TR} $FFBX_ROW_SEPARATOR '\n' < "$FILE" | ${CMD_AWK} -F$FFBX_FIELD_SEPARATOR '{ print $'$FN' }') <(${CMD_TR} $FFBX_ROW_SEPARATOR '\n' < "$FILE") | ${CMD_SORT} | ${CMD_AWK} -F$FFBX_FIELD_SEPARATOR '{ for (i = 2; i < NF; i++) { printf "%s'$FFBX_FIELD_SEPARATOR'", $i } printf "%s'$FFBX_ROW_SEPARATOR'", $i }'
